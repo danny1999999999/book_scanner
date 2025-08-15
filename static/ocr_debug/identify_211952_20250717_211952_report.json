@@ -1,0 +1,21 @@
+{
+  "original_quality": {
+    "width": 720,
+    "height": 1280,
+    "sharpness": 466.9855314413515,
+    "contrast": 70.07446508848601,
+    "brightness": 162.53712348090278,
+    "total_pixels": 921600,
+    "suitable_for_ocr": true
+  },
+  "final_quality": {
+    "width": 800,
+    "height": 1422,
+    "sharpness": 1113.5008393336211,
+    "contrast": 97.26899069687617,
+    "brightness": 164.99224771448664,
+    "total_pixels": 1137600,
+    "suitable_for_ocr": true
+  },
+  "processing_time": "20250717_211952"
+}

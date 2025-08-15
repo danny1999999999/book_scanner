@@ -1,0 +1,13 @@
+{
+  "name": "智能書籍識別助手",
+  "short_name": "書籍識別",
+  "description": "AI 驅動的書籍封面識別應用，支援 360 度旋轉檢測",
+  "start_url": "/scanner",
+  "display": "standalone",
+  "background_color": "#f8f6f0",
+  "theme_color": "#d4af37",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "categories": ["productivity", "education", "utilities"],
+  "lang": "zh-TW"
+}

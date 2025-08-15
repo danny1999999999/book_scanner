@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512"><svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 95%圓角大白框 -->
+  <rect x="18" y="18" width="476" height="476" rx="120" fill="#fff" stroke="#f6e8c5" stroke-width="12"></rect>
+  <!-- 放大鏡主圓 -->
+  <circle cx="256" cy="252" r="170" fill="#fff" stroke="#f6e8c5" stroke-width="14"></circle>
+  <!-- 放大鏡把手 -->
+  <rect x="370" y="370" width="100" height="34" rx="17" transform="rotate(45 370 370)" fill="#fbeecb" stroke="#e7c673" stroke-width="10"></rect>
+  <!-- 書本底部 -->
+  <rect x="136" y="342" width="240" height="58" rx="19" fill="#fff" stroke="#f6e8c5" stroke-width="7"></rect>
+  <!-- 書頁線條 -->
+  <line x1="170" y1="364" x2="342" y2="364" stroke="#e7c673" stroke-width="2"></line>
+  <line x1="170" y1="378" x2="342" y2="378" stroke="#e7c673" stroke-width="2"></line>
+  <line x1="170" y1="392" x2="342" y2="392" stroke="#e7c673" stroke-width="2"></line>
+  <!-- 書本厚度陰影 -->
+  <rect x="146" y="400" width="220" height="12" rx="4" fill="#f8e6b1"></rect>
+  <!-- 大S放中間靠上 -->
+  <text x="160" y="242" font-size="175" font-family="Segoe UI, Arial" font-weight="900" fill="url(#sGradient3)">S</text>
+  <defs>
+    <linearGradient id="SvgjsLinearGradient1028" x1="160" y1="100" x2="350" y2="340" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f7c873"></stop>
+      <stop offset="0.5" stop-color="#fbc686"></stop>
+      <stop offset="1" stop-color="#ffeccf"></stop>
+    </linearGradient>
+  </defs>
+  <!-- 小can靠近S右下 -->
+  <text x="285" y="265" font-size="68" font-family="Segoe UI, Arial" font-weight="bold" fill="#e7c673" letter-spacing="5">can</text>
+  <!-- 放大鏡玻璃反光 -->
+  <ellipse cx="220" cy="200" rx="90" ry="54" fill="#fff" opacity="0.22"></ellipse>
+  <ellipse cx="260" cy="250" rx="140" ry="95" fill="#fff" opacity="0.09"></ellipse>
+</svg><style>@media (prefers-color-scheme: light) { :root { filter: none; } }
+@media (prefers-color-scheme: dark) { :root { filter: none; } }
+</style></svg>
