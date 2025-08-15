@@ -1596,13 +1596,14 @@ if __name__ == "__main__":
     logger.info("   ReDoc: http://localhost:8000/redoc")
     
     # 使用環境變數配置啟動參數
-    host = os.getenv('APP_HOST', '127.0.0.1')
-    port = int(os.getenv('APP_PORT', '8000'))
-    
+   
+    host = os.getenv('APP_HOST', '0.0.0.0')
+    port = int(os.getenv('PORT', os.getenv('APP_PORT', '8000')))  # Railway 使用 PORT 環境變數
+
     uvicorn.run(
         "app_3:app", 
         host=host, 
         port=port, 
-        reload=True,
+        reload=False,  # 生產環境建議設為 False
         log_level="info"
     )
