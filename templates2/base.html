@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  
+    <!-- 在你的 templates2/base.html 的 <head> 部分加入以下內容 -->
+
+<!-- 基本的 meta 標籤 -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}FastAPI書籍識別系統{% endblock %}</title>
+
+<!-- PWA 核心配置 -->
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#d4af37">
+
+<!-- iOS PWA 支援 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="書籍識別">
+<link rel="apple-touch-icon" href="/static/icons/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/static/icons/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/icons/icon-192x192.png">
+
+<!-- Android PWA 支援 -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="書籍識別">
+
+<!-- Windows PWA 支援 -->
+<meta name="msapplication-TileColor" content="#d4af37">
+<meta name="msapplication-TileImage" content="/static/icons/icon-144x144.png">
+
+<!-- 網站描述 -->
+<meta name="description" content="AI 驅動的書籍封面識別應用，支援 360 度旋轉檢測">
+<meta name="keywords" content="書籍識別,AI,CLIP,FastAPI,PWA">
+
+<!-- 分享優化 -->
+<meta property="og:title" content="智能書籍識別助手">
+<meta property="og:description" content="AI 驅動的書籍封面識別應用">
+<meta property="og:image" content="/static/icons/icon-512x512.png">
+<meta property="og:type" content="website">
+
+<!-- PWA 安裝提示和 Service Worker 註冊 -->
+<script>
+// Service Worker 註冊
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/static/sw.js')
+      .then((registration) => {
+        console.log('✅ Service Worker 註冊成功:', registration);
+      })
+      .catch((registrationError) => {
+        console.log('❌ Service Worker 註冊失敗:', registrationError);
+      });
+  });
+}
+
+// PWA 安裝提示
+let deferredPrompt;
+let installButton;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  console.log('💡 PWA 安裝提示觸發');
+  e.preventDefault();
+  deferredPrompt = e;
+  showInstallButton();
+});
+
+function showInstallButton() {
+  // 檢查是否已經有安裝按鈕
+  if (document.getElementById('pwa-install-btn')) return;
+  
+  // 創建安裝按鈕
+  installButton = document.createElement('button');
+  installButton.id = 'pwa-install-btn';
+  installButton.innerHTML = '📲 安裝APP';
+  installButton.style.cssText = `
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1000;
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+    transition: all 0.3s ease;
+  `;
+  
+  installButton.addEventListener('click', installPWA);
+  installButton.addEventListener('mouseenter', () => {
+    installButton.style.transform = 'translateY(-2px)';
+    installButton.style.boxShadow = '0 6px 20px rgba(76, 175, 80, 0.4)';
+  });
+  installButton.addEventListener('mouseleave', () => {
+    installButton.style.transform = 'translateY(0)';
+    installButton.style.boxShadow = '0 4px 15px rgba(76, 175, 80, 0.3)';
+  });
+  
+  document.body.appendChild(installButton);
+  
+  // 5秒後淡出（但保持可點擊）
+  setTimeout(() => {
+    if (installButton) {
+      installButton.style.opacity = '0.7';
+    }
+  }, 5000);
+}
+
+async function installPWA() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+      console.log('✅ 用戶接受安裝PWA');
+    } else {
+      console.log('❌ 用戶拒絕安裝PWA');
+    }
+    
+    deferredPrompt = null;
+    
+    // 隱藏安裝按鈕
+    if (installButton) {
+      installButton.style.opacity = '0';
+      setTimeout(() => {
+        if (installButton && installButton.parentNode) {
+          installButton.parentNode.removeChild(installButton);
+        }
+      }, 300);
+    }
+  }
+}
+
+// 檢測是否已經以PWA模式運行
+window.addEventListener('DOMContentLoaded', () => {
+  const isStandalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+  const isIOSStandalone = window.navigator.standalone === true;
+  
+  if (isStandalone || isIOSStandalone) {
+    console.log('🚀 PWA模式運行中');
+    document.body.classList.add('pwa-mode');
+    
+    // PWA 模式下的額外樣式
+    const pwaStyle = document.createElement('style');
+    pwaStyle.textContent = `
+      .pwa-mode .navigation { display: none !important; }
+      .pwa-mode { 
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+    `;
+    document.head.appendChild(pwaStyle);
+  }
+});
+</script>
+
+{% if request.url.path != '/scanner' %}
+<link rel="stylesheet" href="/static/css/main.css">
+{% endif %}
+
+<!-- 原有的 CSS 和其他內容 -->
+
+
+    <!-- 基礎樣式 -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2a241f;
+            margin-bottom: 30px;
+            font-size: 32px;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+        }
+
+        /* 訊息樣式 */
+        #message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            max-width: 400px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: 500;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* 導航樣式 */
+        .navigation {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .nav-link {
+            display: inline-block;
+            margin: 0 15px;
+            padding: 10px 20px;
+            text-decoration: none;
+            color: #667eea;
+            font-weight: 600;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .nav-link:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .nav-link.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="container">
+        <!-- 導航選單 -->
+        <nav class="navigation">
+            <a href="/" class="nav-link">🏠 首頁</a>
+            <a href="/scanner" class="nav-link">🔍 智能掃描</a>
+            <a href="/admin" class="nav-link">📚 書籍管理</a>
+            <a href="/records" class="nav-link">📊 記錄分析</a>
+            <a href="/model_status" class="nav-link">⚙️ 系統狀態</a>
+        </nav>
+
+        <!-- 主要內容 -->
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+
+        <!-- 頁尾 -->
+        <footer style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0; color: #666;">
+            <p>🚀 FastAPI 書籍識別系統 v3.1 | 🤖 CLIP 智能識別技術</p>
+            <p style="font-size: 12px; margin-top: 5px;">
+                💡 支援 360° 旋轉檢測 | 📐 16:9 智能引導框 | 🎯 邊緣檢測優化
+            </p>
+        </footer>
+    </div>
+
+    <!-- 全域訊息容器 -->
+    <div id="message"></div>
+
+    <!-- 基礎 JavaScript -->
+    <script>
+        // 全域訊息顯示函數
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('message');
+            if (messageDiv) {
+                messageDiv.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+                
+                // 成功訊息3秒後自動清除
+                if (type === 'success') {
+                    setTimeout(() => {
+                        if (messageDiv.innerHTML.includes(message)) {
+                            messageDiv.innerHTML = '';
+                        }
+                    }, 3000);
+                }
+            }
+            console.log(`📢 ${type.toUpperCase()}: ${message}`);
+        }
+
+        // 高亮當前頁面的導航連結
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.nav-link');
+            
+            navLinks.forEach(link => {
+                if (link.getAttribute('href') === currentPath) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

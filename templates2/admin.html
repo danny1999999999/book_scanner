@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}FastAPI書籍管理 - 旋轉增強版{% endblock %}
+
+{% block content %}
+<h1>📚 FastAPI書籍管理系統</h1>
+
+<div class="fastapi-info" hidden>
+    <h3>🚀 FastAPI旋轉增強版特色</h3>
+    <span class="fastapi-badge">異步處理</span>
+    <span class="fastapi-badge">360度旋轉</span>
+    <span class="fastapi-badge">book3.db</span>
+    <span class="fastapi-badge">智能嵌入</span>
+    <p>📋 每本書籍將自動生成 0°, 90°, 180°, 270° 四個角度的旋轉變體，大幅提升任意角度拍攝的識別準確率</p>
+</div>
+
+<div class="video-container">
+    <video id="video" autoplay muted playsinline></video>
+    <canvas id="canvas" style="display: none;"></canvas>
+</div>
+
+<div class="center">
+    <button id="startCamera" class="btn btn-primary">📷 啟動攝影機</button>
+    <button id="capturePhoto" class="btn btn-success" disabled>📸 拍攝封面</button>
+    <button id="stopCamera" class="btn btn-warning" disabled>⏹️ 關閉攝影機</button>
+</div>
+
+<div class="upload-section">
+    <h3 class="center">📤 或上傳封面圖片</h3>
+    <div class="upload-area" id="uploadArea">
+        <p>🖼️ 點擊或拖拽封面圖片到這裡</p>
+        <p style="font-size: 14px; color: #666;">系統會自動生成4個角度的旋轉變體</p>
+        <button class="btn btn-warning" id="uploadBtn">📁 選擇封面</button>
+    </div>
+    <input type="file" id="fileInput" accept="image/*">
+</div>
+
+<div id="captureResult" style="display: none;">
+    <h3 class="center">🖼️ 拍攝的封面</h3>
+    <div class="center">
+        <img id="capturedImage" class="captured-image" />
+    </div>
+</div>
+
+<div id="bookForm" style="display: none;">
+    <h3 class="center">📋 書籍資訊</h3>
+    <div class="form-group">
+        <label>📖 書名 *</label>
+        <input type="text" id="title" required placeholder="請輸入書名">
+    </div>
+    <div class="form-group">
+        <label>🏷️ ISBN</label>
+        <input type="text" id="isbn" placeholder="請輸入ISBN（選填）">
+    </div>
+    <div class="form-group">
+        <label>🔗 相關連結</label>
+        <input type="url" id="url" placeholder="請輸入相關網址（選填）">
+    </div>
+    <div class="center">
+        <button id="saveBook" class="btn btn-success">💾 儲存到 book3.db (FastAPI異步處理)</button>
+        <button id="resetForm" class="btn btn-warning">🔄 重新開始</button>
+    </div>
+</div>
+
+<div id="message"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/admin.js"></script>
+<link rel="stylesheet" href="/static/css/main.css">
+{% endblock %}

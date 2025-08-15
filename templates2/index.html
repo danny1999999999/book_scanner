@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}FastAPI旋轉增強版書籍識別系統 - 首頁{% endblock %}
+
+{% block content %}
+<h1>📚 FastAPI旋轉增強版書籍識別系統</h1>
+<p class="subtitle">🔄 支援360度旋轉識別 | 🗃️ book3.db 資料庫</p>
+
+<div class="api-docs" hidden>
+    <span class="fastapi-badge">FastAPI 3.1</span>
+    <span class="fastapi-badge">360°旋轉支援</span>
+    <span class="fastapi-badge">智能角度檢測</span>
+    <span class="fastapi-badge">book3.db</span>
+</div>
+
+<div class="api-docs" hidden>
+    <a href="/docs" class="api-link">📚 Swagger UI 文檔</a>
+    <a href="/redoc" class="api-link">📖 ReDoc 文檔</a>
+</div>
+
+<div class="status-section"hidden>
+    <div class="status-title">🔧 旋轉增強系統狀態</div>
+    <div class="status-value {{ status_class }}">
+        🖥️ CLIP系統：{{ clip_status }}
+    </div>
+    <div class="status-value status-normal">
+        🔄 旋轉支援：已啟用 (0°,90°,180°,270°)
+    </div>
+</div>
+
+<div class="nav-section">
+    <div class="nav-title">🚀 辨識功能引導</div>
+    <div class="nav-grid">
+        <a href="/admin" class="nav-card">
+            <span class="nav-icon">📚</span>
+            <div class="nav-title-text">書籍建檔</div>
+            <div class="nav-description">🔄 自動生成4角度變體</div>
+        </a>
+        <a href="/scanner" class="nav-card">
+            <span class="nav-icon">🔍</span>
+            <div class="nav-title-text">AI智能識別</div>
+            <div class="nav-description">🎯 360度角度檢測</div>
+        </a>
+        <a href="/records" class="nav-card">
+            <span class="nav-icon">📊</span>
+            <div class="nav-title-text">記錄分析</div>
+            <div class="nav-description">📈 數據統計</div>
+        </a>
+        <a href="/model_status" class="nav-card">
+            <span class="nav-icon">⚙️</span>
+            <div class="nav-title-text">系統監控</div>
+            <div class="nav-description">🔧 增強版CLIP模型狀態監控</div>
+        </a>
+    </div>
+</div>
+
+<div class="features-section"hidden>
+    <div class="features-title">✨ 旋轉增強功能特色</div>
+    <div class="features-grid">
+        <div class="feature-item">
+            <div class="feature-icon">🔄</div>
+            <div class="feature-text">360度旋轉支援</div>
+        </div>
+        <div class="feature-item">
+            <div class="feature-icon">🎯</div>
+            <div class="feature-text">智能角度檢測</div>
+        </div>
+        <div class="feature-item">
+            <div class="feature-icon">🧠</div>
+            <div class="feature-text">多重CLIP嵌入</div>
+        </div>
+        <div class="feature-item">
+            <div class="feature-icon">⚡</div>
+            <div class="feature-text">FastAPI異步處理</div>
+        </div>
+        <div class="feature-item">
+            <div class="feature-icon">🗃️</div>
+            <div class="feature-text">book3.db專用資料庫</div>
+        </div>
+        <div class="feature-item">
+            <div class="feature-icon">🔒</div>
+            <div class="feature-text">Hash備用識別</div>
+        </div>
+        <div class="feature-item">
+            <div class="feature-icon">📐</div>
+            <div class="feature-text">階段式識別策略</div>
+        </div>
+        <div class="feature-item">
+            <div class="feature-icon">📊</div>
+            <div class="feature-text">旋轉統計分析</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.nav-section {
+    margin: 40px 0;
+}
+
+.nav-title {
+    color: #4a3f36;
+    font-size: 24px;
+    margin-bottom: 25px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.features-section {
+    margin: 40px 0;
+}
+
+.features-title {
+    color: #4a3f36;
+    font-size: 24px;
+    margin-bottom: 25px;
+    text-align: center;
+    font-weight: 600;
+}
+</style>
+{% endblock %}

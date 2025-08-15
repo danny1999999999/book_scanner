@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}FastAPI系統監控 - 旋轉增強版{% endblock %}
+
+{% block content %}
+<h1>⚙️ FastAPI系統監控</h1>
+
+<div class="fastapi-info">
+    <h3>🚀 FastAPI v3.1 旋轉增強系統</h3>
+    <span class="fastapi-badge">異步架構</span>
+    <span class="fastapi-badge">模型監控</span>
+    <span class="fastapi-badge">旋轉支援</span>
+    <span class="fastapi-badge">book3.db</span>
+    <p>📋 即時監控CLIP模型狀態、旋轉功能與系統效能</p>
+</div>
+
+<div id="modelInfo" class="loading">
+    <p>FastAPI載入模型信息中...</p>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.status-card { 
+    background: #f8f9fa; 
+    padding: 25px; 
+    border-radius: 15px; 
+    margin: 20px 0; 
+    border-left: 5px solid #667eea; 
+}
+
+.status-compatible { 
+    border-left-color: #28a745; 
+}
+
+.model-info { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+    gap: 20px; 
+    margin: 20px 0; 
+}
+
+.info-item { 
+    background: rgba(255, 255, 255, 0.8); 
+    padding: 15px; 
+    border-radius: 8px; 
+    text-align: center; 
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function loadModelInfo() {
+    try {
+        const response = await fetch('/api/model_info');
+        const data = await response.json();
+        
+        displayModelInfo(data);
+    } catch (error) {
+        document.getElementById('modelInfo').innerHTML = 
+            '<div class="status-card">' +
+                '<h3>❌ FastAPI載入失敗</h3>' +
+                '<p>無法獲取模型信息：' + error.message + '</p>' +
+            '</div>';
+    }
+}
+
+function displayModelInfo(data) {
+    let html = '<div class="status-card status-compatible">';
+    html += '<h3>✅ 模型狀態 - FastAPI v3.1</h3>';
+    
+    if (data.current_model.available) {
+        html += '<div class="model-info">';
+        html += '<div class="info-item"><strong>🧠 當前模型</strong><br>' + data.current_model.name + '</div>';
+        html += '<div class="info-item"><strong>📊 向量維度</strong><br>' + data.current_model.dimension + '</div>';
+        html += '<div class="info-item"><strong>💻 計算設備</strong><br>' + data.current_model.device + '</div>';
+        html += '<div class="info-item"><strong>🗃️ 資料庫</strong><br>book3.db</div>';
+        html += '<div class="info-item"><strong>🔄 旋轉支援</strong><br>✅ 4角度</div>';
+        html += '<div class="info-item"><strong>⚡ 架構</strong><br>FastAPI異步</div>';
+        html += '</div>';
+    } else {
+        html += '<p>❌ CLIP模型未可用，使用Hash備用識別</p>';
+    }
+    
+    html += '</div>';
+    
+    document.getElementById('modelInfo').innerHTML = html;
+}
+
+document.addEventListener('DOMContentLoaded', loadModelInfo);
+</script>
+{% endblock %}

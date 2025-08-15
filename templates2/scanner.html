@@ -1,0 +1,1634 @@
+{% extends "base.html" %}
+
+{% block title %}FastAPI書籍識別 - 智能引導掃描{% endblock %}
+
+{% block content %}
+<h1>🔍 FastAPI書籍識別系統</h1>
+
+<div class="fastapi-info" hidden>
+    <h3>🚀 智能引導掃描技術</h3>
+    <span class="fastapi-badge">後置鏡頭優先</span>
+    <span class="fastapi-badge">90%自適應框</span>
+    <span class="fastapi-badge">智能裁切</span>
+    <span class="fastapi-badge">360度檢測</span>
+    <span class="fastapi-badge">異步處理</span>
+    <p>📋 系統優先使用手機後置鏡頭拍攝，自動裁切書籍區域，並進行四角度旋轉識別</p>
+</div>
+
+<!-- 攝像頭區域 -->
+<div class="camera-section">
+    <div class="video-container">
+        <video id="video" autoplay muted playsinline></video>
+        
+        <!-- 90% 黃色引導框覆蓋層 -->
+        <div class="guide-overlay" id="guideOverlay">
+            <div class="guide-frame" id="guideFrame">
+                <!-- 四個角落標記 -->
+                <div class="guide-corners">
+                    <div class="corner top-left"></div>
+                    <div class="corner top-right"></div>
+                    <div class="corner bottom-left"></div>
+                    <div class="corner bottom-right"></div>
+                </div>
+                
+                <!-- 中央提示文字 -->
+                <div class="guide-text" id="guideText">
+                    <div class="guide-instruction" id="guideInstruction">正面朝上，完整置入</div>
+                    <div class="guide-status" id="guideStatus">等待啟動相機...</div>
+                </div>
+                
+                <!-- 輔助網格線 -->
+                <div class="guide-grid">
+                    <div class="grid-line horizontal grid-h1"></div>
+                    <div class="grid-line horizontal grid-h2"></div>
+                    <div class="grid-line vertical grid-v1"></div>
+                    <div class="grid-line vertical grid-v2"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 主要操作按鈕 - 移到視頻區域內部底部 -->
+        <div class="video-bottom-control">
+            <button id="mainCameraBtn" class="btn btn-video-main">
+                <span class="btn-icon" id="mainBtnIcon">📷</span>
+                <span id="mainBtnText">啟動</span>
+            </button>
+        </div>
+        
+        <!-- 🔥 新增：視頻區域內訊息顯示覆蓋層 -->
+        <div class="video-message-overlay" id="videoMessageOverlay">
+            <div id="videoMessageText"></div>
+        </div>
+        
+        <!-- 隱藏的 Canvas 元素 -->
+        <canvas id="canvas" style="display: none;"></canvas>
+        <canvas id="cropCanvas" style="display: none;"></canvas>
+        <canvas id="edgeCanvas" style="display: none;"></canvas>
+    </div>
+
+    <!-- 輔助控制按鈕 - 手機版隱藏 -->
+    <div class="camera-controls desktop-only">
+        <button id="stopCamera" class="btn btn-warning" disabled>
+            <span class="btn-icon">⏹️</span>
+            關閉相機
+        </button>
+        <button id="testCamera" class="btn btn-secondary">
+            <span class="btn-icon">🔧</span>
+            測試相機
+        </button>
+    </div>
+</div>
+
+<!-- 檔案上傳區域 - 手機版簡化 -->
+<div class="upload-section desktop-only">
+    <h3 class="section-title">📤 上傳圖片智能識別</h3>
+    <div class="upload-area" id="uploadArea">
+        <div class="upload-content">
+            <div class="upload-icon">🖼️</div>
+            <p class="upload-text">點擊或拖拽圖片到這裡</p>
+            <p class="upload-hint">支援任意角度書籍，建議使用手機後置鏡頭拍攝</p>
+            <button class="btn btn-secondary" id="uploadBtn">
+                <span class="btn-icon">📁</span>
+                選擇檔案
+            </button>
+        </div>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" style="display: none;">
+</div>
+
+<!-- 掃描結果顯示 -->
+<div id="scanResult" class="scan-result" style="display: none;">
+    <h3 class="section-title">🖼️ 處理後的封面</h3>
+    <div class="result-image-container">
+        <img id="scannedImage" class="captured-image" />
+        <div class="image-info">
+            <span id="imageProcessInfo" class="process-info"></span>
+        </div>
+    </div>
+</div>
+
+<!-- 識別結果顯示 -->
+<div id="identificationResult"></div>
+
+<!-- Loading 動畫覆蓋層 -->
+<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="loading-spinner">
+        <div class="spinner"></div>
+        <p class="loading-text">AI 正在辨識中...</p>
+    </div>
+</div>
+
+<!-- 辨識結果彈出層 - 全螢幕白底 -->
+<div id="resultModal" class="result-modal" style="display: none;">
+    <div class="result-modal-content">
+        <!-- 關閉按鈕 - 使用 onclick -->
+        <button class="result-close-btn" id="resultCloseBtn" onclick="hideResultModal()">×</button>
+        
+        <!-- 拍照的圖片 -->
+        <div class="captured-photo" id="capturedPhoto">
+            <img id="capturedPhotoImg" class="captured-photo-img" />
+        </div>
+        
+        <!-- 結果內容 -->
+        <div class="result-content" id="resultContent">
+            <!-- 動態內容將在這裡 -->
+        </div>
+        
+        <!-- 操作按鈕 -->
+        <div class="result-actions">
+            <button class="btn btn-retry" id="retryBtn" onclick="retryIdentification()">
+                <span class="btn-icon">🔄</span>
+                重新辨識
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 訊息提示 -->
+<div id="message"></div>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ===========================================
+   Scanner 頁面專用：隱藏導航
+   ========================================== */
+.navigation {
+    display: none !important;
+}
+
+/* ===========================================
+   整體佈局 - 響應式優化
+   ========================================== */
+.camera-section {
+    margin: 10px 0;
+    padding: 15px;
+    background: linear-gradient(135deg, #f8f6f0 0%, #e8dcc0 100%);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+/* 🔥 手機版專用修改 - 防止頁面溢出，移除所有最小寬度限制 */
+@media (max-width: 768px) {
+    /* 🔥 全域重置，移除所有可能的最小寬度 */
+    * {
+        min-width: unset !important;
+        box-sizing: border-box !important;
+    }
+    
+    /* 不再隱藏 camera-section，而是移除背景和邊距 */
+    .camera-section {
+        background: transparent !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+        width: 100% !important;
+        max-width: 100vw !important; /* 🔥 確保不超出視窗 */
+        min-width: unset !important; /* 🔥 移除最小寬度 */
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+    }
+    
+    /* 🔥 重新定義頁面主體背景為淡黃色，確保全頁面覆蓋 */
+    body {
+        background: linear-gradient(135deg, #f8f6f0 0%, #e8dcc0 100%) !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow-x: hidden !important;
+        width: 100vw !important; /* 🔥 強制設為視窗寬度 */
+        max-width: 100vw !important;
+        min-width: unset !important; /* 🔥 移除最小寬度 */
+        min-height: 100vh !important;
+        box-sizing: border-box !important;
+    }
+    
+    /* 🔥 確保 HTML 根元素也不溢出，並有淡黃色背景 */
+    html {
+        overflow-x: hidden !important;
+        width: 100vw !important; /* 🔥 強制設為視窗寬度 */
+        max-width: 100vw !important;
+        min-width: unset !important; /* 🔥 移除最小寬度 */
+        background: linear-gradient(135deg, #f8f6f0 0%, #e8dcc0 100%) !important;
+        min-height: 100vh !important;
+        box-sizing: border-box !important;
+    }
+    
+    /* 🔥 確保整個容器區域都有淡黃色背景，移除最小寬度 */
+    .container, main, [role="main"] {
+        background: transparent !important;
+        min-height: 100vh !important;
+        width: 100% !important;
+        max-width: 100vw !important;
+        min-width: unset !important; /* 🔥 移除最小寬度 */
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+    }
+    
+    /* 調整主標題間距，移除最小寬度 */
+    h1 {
+        margin-bottom: 10px !important;
+        margin-top: 10px !important;
+        padding: 0 10px !important;
+        text-align: center !important;
+        position: relative !important;
+        z-index: 200 !important;
+        width: 100% !important;
+        max-width: 100vw !important;
+        min-width: unset !important; /* 🔥 移除最小寬度 */
+        box-sizing: border-box !important;
+        background: transparent !important;
+        overflow-wrap: break-word !important; /* 🔥 允許文字換行 */
+    }
+    
+    /* 隱藏桌機版專用元素 */
+    .desktop-only {
+        display: none !important;
+    }
+    
+    /* 🔥 隱藏頁面頂部的訊息區域，改用視頻內訊息 */
+    #message {
+        display: none !important;
+    }
+}
+
+/* 桌機版 - 保持原樣 */
+@media (min-width: 1025px) {
+    .camera-section {
+        margin: 20px auto;
+        padding: 30px;
+        max-width: 1200px;
+    }
+}
+
+/* ===========================================
+   視頻容器 - 手機版重新定位到頁面層級
+   ========================================== */
+.video-container {
+    position: relative;
+    width: 100%;
+    margin: 0 auto;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+/* 🔥 手機版專用：視頻容器重新定位和調整尺寸 */
+@media (max-width: 768px) {
+    /* 視頻容器調整 - 移除所有可能導致溢出的設定 */
+    .video-container {
+        position: relative !important;
+        width: 90vw !important; /* 進一步縮小到 90vw，確保安全 */
+        max-width: 90vw !important; /* 同步調整最大寬度 */
+        min-width: unset !important; /* 🔥 移除最小寬度限制 */
+        height: calc(100vh - 140px) !important;
+        margin: 0 auto !important; /* 簡化邊距 */
+        padding: 0 !important; /* 移除內邊距 */
+        border-radius: 6px !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
+        left: auto !important;
+        right: auto !important; /* 🔥 確保右側也重置 */
+        transform: none !important;
+        top: auto !important;
+        aspect-ratio: unset !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important; /* 🔥 確保邊框包含在寬度內 */
+    }
+    
+    /* 確保視頻填滿容器，移除最小尺寸 */
+    .video-container #video {
+        width: 100% !important;
+        height: 100% !important;
+        min-width: unset !important; /* 🔥 移除最小寬度 */
+        min-height: unset !important; /* 🔥 移除最小高度 */
+        max-width: 100% !important; /* 🔥 確保不超出容器 */
+        max-height: 100% !important; /* 🔥 確保不超出容器 */
+        object-fit: cover !important;
+        box-sizing: border-box !important;
+    }
+    
+    /* 確保按鈕控制區域正確定位，移除最小寬度 */
+    .video-bottom-control {
+        position: absolute !important;
+        bottom: 20px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        z-index: 120 !important;
+        min-width: unset !important; /* 🔥 移除最小寬度 */
+        width: auto !important;
+        box-sizing: border-box !important;
+    }
+    
+    /* 🔥 確保按鈕本身也沒有最小寬度限制 */
+    .btn-video-main {
+        min-width: unset !important; /* 🔥 移除按鈕最小寬度 */
+        width: auto !important;
+        max-width: 80vw !important; /* 🔥 限制按鈕最大寬度 */
+        box-sizing: border-box !important;
+    }
+    
+    /* 🔥 新增：視頻區域內訊息顯示 */
+    .video-message-overlay {
+        position: absolute !important;
+        top: 20px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        background: rgba(0, 0, 0, 0.8) !important;
+        color: white !important;
+        padding: 10px 20px !important;
+        border-radius: 6px !important;
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        text-align: center !important;
+        z-index: 130 !important;
+        max-width: 80% !important; /* 🔥 進一步限制訊息寬度 */
+        min-width: unset !important; /* 🔥 移除最小寬度 */
+        word-wrap: break-word !important;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3) !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        transition: opacity 0.3s ease !important;
+        box-sizing: border-box !important;
+    }
+    
+    /* 訊息顯示時的動畫 */
+    .video-message-overlay.show {
+        opacity: 1 !important;
+    }
+}
+
+/* 平板版：調整為適中比例 4:3 */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .video-container {
+        aspect-ratio: 4/3;
+        max-width: 600px;
+        border-radius: 18px;
+    }
+}
+
+/* 桌機版：橫式比例 16:9 */
+@media (min-width: 1025px) {
+    .video-container {
+        aspect-ratio: 16/9;
+        max-width: 900px;
+        border-radius: 20px;
+    }
+}
+
+#video {
+    width: 100%;
+    height: 100%;
+    display: block;
+    background: #000;
+    object-fit: cover;
+}
+
+/* ===========================================
+   引導框覆蓋層 - 手機版黃色滿版
+   ========================================== */
+.guide-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* 引導框 - 響應式尺寸 */
+.guide-frame {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 3px solid #FFD700;
+    border-radius: 12px;
+    background: rgba(255, 215, 0, 0.1);
+    box-shadow: 
+        0 0 0 2px rgba(255, 215, 0, 0.3),
+        0 0 20px rgba(255, 215, 0, 0.2),
+        inset 0 0 20px rgba(255, 215, 0, 0.1);
+    animation: guide-pulse 2s ease-in-out infinite;
+    transition: all 0.3s ease;
+}
+
+/* 🔥 手機版專用：黃色框和引導元素調整 */
+@media (max-width: 768px) {
+    .guide-frame {
+        width: 97% !important; /* 擴大到97% */
+        height: 97% !important; /* 擴大到97% */
+        border-radius: 6px !important; /* 縮小圓角 */
+        border-width: 4px !important; /* 稍微加粗邊框 */
+        background: rgba(255, 215, 0, 0.075) !important; /* 降低透明度到一半：0.15 → 0.075 */
+    }
+    
+    /* 引導框覆蓋層調整 */
+    .guide-overlay {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        pointer-events: none !important;
+        z-index: 110 !important; /* 高於視頻 */
+    }
+    
+    /* 確保所有子元素正常顯示 */
+    .guide-corners,
+    .guide-text,
+    .guide-grid {
+        display: block !important;
+        visibility: visible !important;
+    }
+}
+
+/* 平板版引導框 */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .guide-frame {
+        width: 80%;
+        height: 75%;
+    }
+}
+
+/* 桌機版引導框 - 橫式優化 */
+@media (min-width: 1025px) {
+    .guide-frame {
+        width: 75%;
+        height: 70%;
+        border-radius: 15px;
+    }
+}
+
+/* 🔥 手機小屏專用優化 */
+@media screen and (max-width: 480px) {
+    .guide-frame {
+        width: 98% !important; /* 小屏更接近滿版 */
+        height: 98% !important;
+        border-radius: 4px !important; /* 更小圓角 */
+    }
+    
+    .guide-instruction {
+        font-size: 22px !important;
+        padding: 10px 18px !important;
+    }
+    
+    .guide-status {
+        font-size: 15px !important;
+        padding: 5px 14px !important;
+        border-radius: 6px !important; /* 縮小圓角 */
+    }
+}
+
+/* 引導框狀態變化 */
+.guide-frame.detecting {
+    border-color: #FFA500;
+    background: rgba(255, 165, 0, 0.15);
+    animation: guide-detecting 1.5s ease-in-out infinite;
+}
+
+.guide-frame.found {
+    border-color: #32CD32;
+    background: rgba(50, 205, 50, 0.15);
+    animation: guide-success 1s ease-in-out;
+}
+
+.guide-frame.error {
+    border-color: #FF6B6B;
+    background: rgba(255, 107, 107, 0.15);
+    animation: guide-error 0.5s ease-in-out;
+}
+
+/* 動畫效果 */
+@keyframes guide-pulse {
+    0%, 100% { 
+        border-color: #FFD700; 
+        box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.3), 0 0 20px rgba(255, 215, 0, 0.2);
+    }
+    50% { 
+        border-color: #FFC700; 
+        box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.5), 0 0 30px rgba(255, 215, 0, 0.3);
+    }
+}
+
+@keyframes guide-detecting {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.02); }
+}
+
+@keyframes guide-success {
+    0% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.05); }
+    100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes guide-error {
+    0%, 100% { transform: translate(-50%, -50%) translateX(0); }
+    25% { transform: translate(-50%, -50%) translateX(-5px); }
+    75% { transform: translate(-50%, -50%) translateX(5px); }
+}
+
+/* ===========================================
+   角落標記 - 手機版縮小圓角
+   ========================================== */
+.guide-corners {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.corner {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #FFD700;
+    background: rgba(255, 215, 0, 0.3);
+}
+
+/* 🔥 手機版角落標記 - 縮小圓角 */
+@media screen and (max-width: 768px) {
+    .corner {
+        width: 18px !important;
+        height: 18px !important;
+        border-width: 3px !important;
+    }
+    
+    .corner.top-left {
+        border-radius: 4px 0 0 0 !important; /* 縮小圓角 */
+    }
+    
+    .corner.top-right {
+        border-radius: 0 4px 0 0 !important;
+    }
+    
+    .corner.bottom-left {
+        border-radius: 0 0 0 4px !important;
+    }
+    
+    .corner.bottom-right {
+        border-radius: 0 0 4px 0 !important;
+    }
+}
+
+/* 手機小屏角落標記 */
+@media screen and (max-width: 480px) {
+    .corner {
+        width: 15px;
+        height: 15px;
+        border-width: 2px;
+    }
+}
+
+/* 桌機版角落標記 */
+@media screen and (min-width: 1025px) {
+    .corner {
+        width: 25px;
+        height: 25px;
+        border-width: 4px;
+    }
+}
+
+.corner.top-left {
+    top: -3px;
+    left: -3px;
+    border-right: none;
+    border-bottom: none;
+    border-radius: 8px 0 0 0;
+}
+
+.corner.top-right {
+    top: -3px;
+    right: -3px;
+    border-left: none;
+    border-bottom: none;
+    border-radius: 0 8px 0 0;
+}
+
+.corner.bottom-left {
+    bottom: -3px;
+    left: -3px;
+    border-right: none;
+    border-top: none;
+    border-radius: 0 0 0 8px;
+}
+
+.corner.bottom-right {
+    bottom: -3px;
+    right: -3px;
+    border-left: none;
+    border-top: none;
+    border-radius: 0 0 8px 0;
+}
+
+/* ===========================================
+   引導文字 - 手機版文字置中放大
+   ========================================== */
+.guide-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: #2a241f;
+    font-weight: 600;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.guide-instruction {
+    margin-bottom: 12px;
+    background: none !important;
+    border: none !important;
+    color: rgba(255, 255, 255, 0.75) !important;
+    font-size: 24px;
+    font-weight: 700;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    white-space: nowrap;
+    padding: 0;
+}
+
+/* 桌機版引導文字 */
+@media (min-width: 1025px) {
+    .guide-instruction {
+        font-size: 28px !important;
+        margin-bottom: 15px;
+    }
+}
+
+.guide-status {
+    border-radius: 10px;
+    background: rgba(255,215,0,0.8);
+    color: #2a241f;
+    font-weight: 500;
+    font-size: 10px;
+    padding: 3px 8px;
+}
+
+/* 桌機版狀態文字 */
+@media (min-width: 1025px) {
+    .guide-status {
+        font-size: 12px;
+        padding: 4px 10px;
+        border-radius: 12px;
+    }
+}
+
+/* ===========================================
+   網格線
+   ========================================== */
+.guide-grid {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.3;
+}
+
+.grid-line {
+    position: absolute;
+    background: #FFD700;
+}
+
+.grid-line.horizontal {
+    width: 100%;
+    height: 1px;
+}
+
+.grid-line.vertical {
+    width: 1px;
+    height: 100%;
+}
+
+.grid-h1 { top: 33.33%; }
+.grid-h2 { top: 66.66%; }
+.grid-v1 { left: 33.33%; }
+.grid-v2 { left: 66.66%; }
+
+/* ===========================================
+   視頻內部按鈕控制 - 手機版文字放大置中
+   ========================================== */
+.video-bottom-control {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    pointer-events: auto;
+}
+
+/* 手機版 - 黃框97%高度，按鈕在黃框內底部 */
+@media (max-width: 768px) {
+    .video-bottom-control {
+        bottom: 15%; /* 確保在黃框內 */
+    }
+}
+
+/* 平板版 - 黃框75%高度，按鈕在黃框內底部 */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .video-bottom-control {
+        bottom: 18%; /* 確保在黃框內 */
+    }
+}
+
+/* 桌機版橫式 - 黃框70%高度，按鈕在黃框內底部 */
+@media (min-width: 1025px) {
+    .video-bottom-control {
+        bottom: 20%; /* 確保在黃框內 */
+    }
+}
+
+/* 視頻內按鈕樣式 */
+.btn-video-main {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    color: white;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 9px 18px;
+    border-radius: 20px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 
+        0 3px 12px rgba(76, 175, 80, 0.4),
+        0 0 0 2px rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    background-clip: padding-box;
+    min-width: 80px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* 🔥 手機版按鈕專用 - 文字放大、完全置中、縮小圓角 */
+@media (max-width: 768px) {
+    .btn-video-main {
+        font-size: 16px !important; /* 放大文字 */
+        font-weight: 800 !important; /* 加粗 */
+        padding: 12px 24px !important; /* 增大內邊距 */
+        border-radius: 10px !important; /* 縮小圓角 */
+        min-width: 100px !important;
+        justify-content: center !important; /* 完全置中 */
+        text-align: center !important;
+        gap: 6px !important;
+    }
+    
+    .btn-video-main .btn-icon {
+        font-size: 18px !important;
+    }
+    
+    .btn-video-main #mainBtnText {
+        font-size: 16px !important;
+        font-weight: 800 !important;
+    }
+}
+
+/* 桌機版按鈕優化 */
+@media screen and (min-width: 1025px) {
+    .btn-video-main {
+        font-size: 16px;
+        padding: 12px 24px;
+        border-radius: 25px;
+        min-width: 100px;
+        gap: 8px;
+    }
+}
+
+.btn-video-main:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+        0 6px 20px rgba(76, 175, 80, 0.5),
+        0 0 0 2px rgba(255, 255, 255, 0.4);
+}
+
+.btn-video-main:active {
+    transform: translateY(0);
+}
+
+.btn-video-main:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-video-main.identify-mode {
+    background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+    box-shadow: 
+        0 4px 15px rgba(33, 150, 243, 0.4),
+        0 0 0 2px rgba(255, 255, 255, 0.3);
+}
+
+.btn-video-main.identify-mode:hover {
+    box-shadow: 
+        0 6px 20px rgba(33, 150, 243, 0.5),
+        0 0 0 2px rgba(255, 255, 255, 0.4);
+}
+
+/* 🔥 手機小屏按鈕優化 */
+@media screen and (max-width: 480px) {
+    .video-bottom-control {
+        bottom: 8%;
+    }
+    
+    .btn-video-main {
+        font-size: 14px !important;
+        padding: 10px 20px !important;
+        min-width: 90px !important;
+        border-radius: 8px !important; /* 更小圓角 */
+    }
+    
+    .guide-status {
+        font-size: 9px;
+        padding: 2px 6px;
+        border-radius: 4px !important; /* 縮小圓角 */
+    }
+}
+
+/* 平板版按鈕優化 */
+@media screen and (min-width: 481px) and (max-width: 1024px) {
+    .btn-video-main {
+        font-size: 13px;
+        padding: 8px 16px;
+        min-width: 75px;
+        border-radius: 12px; /* 縮小圓角 */
+    }
+}
+
+/* ===========================================
+   手機版隱藏功能
+   ========================================== */
+.desktop-only {
+    display: block;
+}
+
+@media (max-width: 768px) {
+    .desktop-only {
+        display: none;
+    }
+}
+
+/* ===========================================
+   按鈕樣式 - 縮小圓角
+   ========================================== */
+.camera-controls {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 15px;
+    flex-wrap: wrap;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+/* 🔥 手機版按鈕圓角縮小 */
+@media (max-width: 768px) {
+    .btn {
+        border-radius: 8px !important; /* 縮小圓角 */
+    }
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    color: white;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+    color: white;
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+    color: white;
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #6c757d 0%, #545b62 100%);
+    color: white;
+}
+
+.btn-icon {
+    font-size: 18px;
+}
+
+/* ===========================================
+   上傳區域 - 縮小圓角
+   ========================================== */
+.upload-section {
+    margin: 30px 0;
+}
+
+.section-title {
+    text-align: center;
+    color: #2a241f;
+    margin-bottom: 20px;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.upload-area {
+    border: 3px dashed #d4c4b0;
+    border-radius: 20px;
+    padding: 40px 20px;
+    text-align: center;
+    background: rgba(255, 253, 250, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin: 0 auto;
+    max-width: 600px;
+}
+
+/* 🔥 手機版上傳區域圓角縮小 */
+@media (max-width: 768px) {
+    .upload-area {
+        border-radius: 10px !important; /* 縮小圓角 */
+    }
+}
+
+.upload-area:hover {
+    border-color: #d4af37;
+    background: rgba(212, 175, 55, 0.1);
+    transform: translateY(-2px);
+}
+
+.upload-area.dragover {
+    border-color: #d4af37;
+    background: rgba(212, 175, 55, 0.2);
+    transform: scale(1.02);
+}
+
+.upload-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.upload-icon {
+    font-size: 48px;
+    opacity: 0.7;
+}
+
+.upload-text {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2a241f;
+    margin: 0;
+}
+
+.upload-hint {
+    font-size: 14px;
+    color: #666;
+    margin: 0;
+}
+
+/* ===========================================
+   掃描結果 - 縮小圓角
+   ========================================== */
+.scan-result {
+    margin: 30px 0;
+    text-align: center;
+}
+
+.result-image-container {
+    position: relative;
+    display: inline-block;
+    margin: 20px auto;
+}
+
+.captured-image {
+    max-width: 400px;
+    max-height: 500px;
+    border-radius: 15px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    border: 3px solid #d4af37;
+}
+
+/* 🔥 手機版掃描結果圓角縮小 */
+@media (max-width: 768px) {
+    .captured-image {
+        border-radius: 8px !important; /* 縮小圓角 */
+    }
+}
+
+.image-info {
+    position: absolute;
+    bottom: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+}
+
+.process-info {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* 🔥 手機版處理資訊圓角縮小 */
+@media (max-width: 768px) {
+    .process-info {
+        border-radius: 10px !important; /* 縮小圓角 */
+    }
+}
+
+/* ===========================================
+   結果樣式 - 縮小圓角
+   ========================================== */
+.result { 
+    background: linear-gradient(135deg, #e8dcc0 0%, #d4c4b0 100%); 
+    color: #4a3f36; 
+    padding: 25px; 
+    border-radius: 20px; 
+    margin: 20px 0; 
+    border: 1px solid #d4c4b0;
+    box-shadow: 0 8px 25px rgba(139, 124, 110, 0.2);
+}
+
+/* 🔥 手機版結果樣式圓角縮小 */
+@media (max-width: 768px) {
+    .result {
+        border-radius: 10px !important; /* 縮小圓角 */
+    }
+}
+
+.error-result, .unknown-book-result, .uncertain-result {
+    background: linear-gradient(135deg, #f5d5d0 0%, #f0c5c0 100%);
+    color: #a0534c;
+    padding: 25px;
+    border-radius: 20px;
+    text-align: center;
+    border: 1px solid #e8b5b0;
+    margin: 20px 0;
+}
+
+/* 🔥 手機版錯誤結果圓角縮小 */
+@media (max-width: 768px) {
+    .error-result, .unknown-book-result, .uncertain-result {
+        border-radius: 10px !important; /* 縮小圓角 */
+    }
+}
+
+.warning-box {
+    background: rgba(255,193,7,0.2);
+    border: 2px solid #ffc107;
+    border-radius: 10px;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+/* 🔥 手機版警告框圓角縮小 */
+@media (max-width: 768px) {
+    .warning-box {
+        border-radius: 6px !important; /* 縮小圓角 */
+    }
+}
+
+.result-details {
+    background: rgba(255,255,255,0.3);
+    border-radius: 15px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+/* 🔥 手機版結果詳情圓角縮小 */
+@media (max-width: 768px) {
+    .result-details {
+        border-radius: 8px !important; /* 縮小圓角 */
+    }
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.detail-item {
+    text-align: center;
+    padding: 12px;
+    background: rgba(255,255,255,0.5);
+    border-radius: 10px;
+}
+
+/* 🔥 手機版詳情項目圓角縮小 */
+@media (max-width: 768px) {
+    .detail-item {
+        border-radius: 6px !important; /* 縮小圓角 */
+    }
+}
+
+.detail-label {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.detail-value {
+    font-weight: bold;
+    color: #2a241f;
+    font-size: 14px;
+}
+
+.high-confidence { color: #28a745 !important; }
+.medium-confidence { color: #ffc107 !important; }
+.low-confidence { color: #dc3545 !important; }
+
+/* ===========================================
+   Loading 動畫覆蓋層
+   ========================================== */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    backdrop-filter: blur(5px);
+}
+
+.loading-spinner {
+    text-align: center;
+    color: white;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top: 4px solid #4CAF50;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 15px auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+/* ===========================================
+   辨識結果彈出層 - 手機版圓角縮小
+   ========================================== */
+.result-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.86);
+    backdrop-filter: blur(10px);
+    z-index: 9998;
+    overflow-y: auto;
+}
+
+.result-modal-content {
+    width: 100%;
+    min-height: 100vh;
+    padding: 60px 20px 20px 20px;
+    box-sizing: border-box;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* 關閉按鈕 */
+.result-close-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: rgba(0, 0, 0, 0.1);
+    color: #666;
+    font-size: 24px;
+    font-weight: bold;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    z-index: 10000;
+}
+
+.result-close-btn:hover {
+    background: rgba(0, 0, 0, 0.2);
+    color: #333;
+    transform: scale(1.1);
+}
+
+/* 拍照的圖片 */
+.captured-photo {
+    width: 100%;
+    max-width: 400px;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.captured-photo-img {
+    width: 100%;
+    height: auto;
+    border-radius: 15px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    border: 3px solid #d4af37;
+    max-height: 50vh;
+    object-fit: contain;
+}
+
+/* 🔥 手機版拍照圖片圓角縮小 */
+@media (max-width: 768px) {
+    .captured-photo-img {
+        border-radius: 8px !important; /* 縮小圓角 */
+    }
+}
+
+/* 結果內容 */
+.result-content {
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.result-title {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: #2a241f;
+}
+
+.result-book-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #4a3f36;
+    margin-bottom: 15px;
+    line-height: 1.4;
+    padding: 0 10px;
+}
+
+.result-similarity {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+.result-url {
+    margin-bottom: 20px;
+}
+
+.result-url a {
+    color: #2196F3;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 16px;
+}
+
+.result-url a:hover {
+    text-decoration: underline;
+}
+
+.similarity-high { 
+    color: #28a745; 
+}
+
+.similarity-medium { 
+    color: #ffc107; 
+}
+
+.similarity-low { 
+    color: #dc3545; 
+}
+
+.low-confidence-warning {
+    background: rgba(255, 193, 7, 0.2);
+    border: 2px solid #ffc107;
+    border-radius: 15px;
+    padding: 20px;
+    margin: 20px 0;
+    color: #856404;
+    font-weight: 500;
+    font-size: 16px;
+    line-height: 1.4;
+}
+
+/* 🔥 手機版低信心警告圓角縮小 */
+@media (max-width: 768px) {
+    .low-confidence-warning {
+        border-radius: 8px !important; /* 縮小圓角 */
+    }
+}
+
+/* 操作按鈕區域 */
+.result-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    width: 100%;
+    max-width: 300px;
+}
+
+.btn-retry {
+    background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 15px 30px;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 6px 20px rgba(33, 150, 243, 0.3);
+    min-width: 140px;
+    justify-content: center;
+}
+
+/* 🔥 手機版重試按鈕圓角縮小 */
+@media (max-width: 768px) {
+    .btn-retry {
+        border-radius: 8px !important; /* 縮小圓角 */
+    }
+}
+
+.btn-retry:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(33, 150, 243, 0.4);
+}
+
+.btn-retry:active {
+    transform: translateY(0);
+}
+
+/* 手機版優化 */
+@media (max-width: 480px) {
+    .result-modal-content {
+        padding: 50px 15px 15px 15px;
+    }
+    
+    .result-close-btn {
+        top: 15px;
+        right: 15px;
+        width: 35px;
+        height: 35px;
+        font-size: 20px;
+    }
+    
+    .captured-photo {
+        margin-bottom: 25px;
+    }
+    
+    .captured-photo-img {
+        max-height: 45vh;
+        border-radius: 6px !important; /* 更小圓角 */
+        border-width: 2px;
+    }
+    
+    .result-title {
+        font-size: 20px;
+        margin-bottom: 15px;
+    }
+    
+    .result-book-title {
+        font-size: 18px;
+        margin-bottom: 12px;
+    }
+    
+    .result-similarity {
+        font-size: 16px;
+        margin-bottom: 12px;
+    }
+    
+    .result-url a {
+        font-size: 14px;
+    }
+    
+    .low-confidence-warning {
+        padding: 15px;
+        font-size: 14px;
+        border-radius: 6px !important; /* 更小圓角 */
+    }
+    
+    .btn-retry {
+        font-size: 14px;
+        padding: 12px 24px;
+        min-width: 120px;
+        border-radius: 6px !important; /* 更小圓角 */
+    }
+    
+    .loading-text {
+        font-size: 14px;
+    }
+    
+    .spinner {
+        width: 40px;
+        height: 40px;
+    }
+}
+
+/* ===========================================
+   FastAPI 資訊區塊 - 縮小圓角
+   ========================================== */
+.fastapi-info {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 15px;
+    margin: 20px 0;
+    text-align: center;
+}
+
+/* 🔥 手機版FastAPI資訊圓角縮小 */
+@media (max-width: 768px) {
+    .fastapi-info {
+        border-radius: 8px !important; /* 縮小圓角 */
+    }
+}
+
+.fastapi-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.2);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    margin: 3px;
+    border: 1px solid rgba(255,255,255,0.3);
+}
+
+/* 🔥 手機版FastAPI徽章圓角縮小 */
+@media (max-width: 768px) {
+    .fastapi-badge {
+        border-radius: 10px !important; /* 縮小圓角 */
+    }
+}
+
+/* ===========================================
+   響應式設計 - 進階優化
+   ========================================== */
+@media (max-width: 768px) {
+    .camera-controls {
+        flex-direction: row;
+        justify-content: center;
+        gap: 10px;
+    }
+    
+    .btn {
+        font-size: 14px;
+        padding: 10px 16px;
+    }
+    
+    .detail-grid {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 10px;
+    }
+    
+    .section-title {
+        font-size: 20px;
+    }
+    
+    .upload-area {
+        padding: 30px 15px;
+    }
+    
+    .upload-text {
+        font-size: 16px;
+    }
+    
+    .upload-hint {
+        font-size: 12px;
+    }
+}
+
+/* 小屏設備特別優化 */
+@media (max-width: 480px) {
+    .camera-section {
+        padding: 15px;
+        margin: 15px 0;
+    }
+    
+    .camera-controls {
+        gap: 8px;
+        margin-top: 10px;
+    }
+    
+    .btn {
+        font-size: 12px;
+        padding: 8px 12px;
+        gap: 4px;
+    }
+    
+    .btn-icon {
+        font-size: 14px;
+    }
+    
+    .upload-area {
+        padding: 25px 10px;
+    }
+    
+    .upload-icon {
+        font-size: 36px;
+    }
+    
+    .captured-image {
+        max-width: 300px;
+        max-height: 400px;
+    }
+}
+
+/* 桌機版特別優化 */
+@media (min-width: 1025px) {
+    .camera-controls {
+        gap: 20px;
+        margin-top: 25px;
+    }
+    
+    .btn {
+        font-size: 18px;
+        padding: 14px 28px;
+        border-radius: 15px;
+    }
+    
+    .section-title {
+        font-size: 28px;
+        margin-bottom: 25px;
+    }
+    
+    .upload-area {
+        padding: 50px 30px;
+        max-width: 800px;
+    }
+    
+    .upload-text {
+        font-size: 20px;
+    }
+    
+    .upload-hint {
+        font-size: 16px;
+    }
+    
+    .captured-image {
+        max-width: 500px;
+        max-height: 600px;
+    }
+    
+    h1 {
+        font-size: 36px;
+        margin-bottom: 40px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/scanner_3.js"></script>
+{% endblock %}
